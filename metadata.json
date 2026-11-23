@@ -1,0 +1,6 @@
+{
+  "name": "CuisineSync - Recettes & Planificateur",
+  "description": "Gestionnaire de recettes intelligent pour PC et iOS : importez depuis le web, personnalisez avec catégories et commentaires, planifiez vos repas de la semaine et générez automatiquement vos listes de courses synchronisées dans le cloud.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

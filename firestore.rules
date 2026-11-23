@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidRecipe(data) {
+      return data.keys().hasAll(['userId', 'title', 'ingredients', 'instructions']) &&
+             data.keys().hasOnly([
+               'id', 'userId', 'title', 'description', 'prepTimeMinutes',
+               'cookTimeMinutes', 'servings', 'categories', 'ingredients',
+               'instructions', 'comments', 'rating', 'favorite',
+               'sourceUrl', 'imageUrl', 'createdAt', 'updatedAt'
+             ]) &&
+             data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.ingredients is list && data.ingredients.size() <= 100 &&
+             data.instructions is list && data.instructions.size() <= 100 &&
+             (!('id' in data) || (data.id is string && isValidId(data.id))) &&
+             (!('prepTimeMinutes' in data) || data.prepTimeMinutes is number) &&
+             (!('cookTimeMinutes' in data) || data.cookTimeMinutes is number) &&
+             (!('servings' in data) || data.servings is number) &&
+             (!('rating' in data) || data.rating is number) &&
+             (!('favorite' in data) || data.favorite is bool) &&
+             (!('categories' in data) || (data.categories is list && data.categories.size() <= 30)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 1000)) &&
+             (!('comments' in data) || (data.comments is string && data.comments.size() <= 2000)) &&
+             (!('sourceUrl' in data) || (data.sourceUrl is string && data.sourceUrl.size() <= 500)) &&
+             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+             (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidMealPlan(data) {
+      return data.keys().hasAll(['userId', 'weekStartDate', 'slots']) &&
+             data.keys().hasOnly(['id', 'userId', 'weekStartDate', 'slots', 'updatedAt']) &&
+             data.userId == request.auth.uid &&
+             data.weekStartDate is string && data.weekStartDate.size() > 0 && data.weekStartDate.size() <= 30 &&
+             data.slots is map &&
+             (!('id' in data) || (data.id is string && isValidId(data.id))) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidGroceryList(data) {
+      return data.keys().hasAll(['userId', 'items']) &&
+             data.keys().hasOnly(['id', 'userId', 'weekStartDate', 'items', 'pantryStaples', 'updatedAt']) &&
+             data.userId == request.auth.uid &&
+             data.items is list && data.items.size() <= 300 &&
+             (!('id' in data) || (data.id is string && isValidId(data.id))) &&
+             (!('weekStartDate' in data) || (data.weekStartDate is string && data.weekStartDate.size() <= 30)) &&
+             (!('pantryStaples' in data) || (data.pantryStaples is list && data.pantryStaples.size() <= 150)) &&
+             (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    // Recipes collection
+    match /recipes/{recipeId} {
+      allow get: if isSignedIn() && isValidId(recipeId) &&
+                    (resource == null || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+                      isValidId(recipeId) &&
+                      incoming().userId == request.auth.uid &&
+                      isValidRecipe(incoming());
+      allow update: if isSignedIn() &&
+                      isValidId(recipeId) &&
+                      existing().userId == request.auth.uid &&
+                      incoming().userId == request.auth.uid &&
+                      isValidRecipe(incoming());
+      allow delete: if isSignedIn() &&
+                      isValidId(recipeId) &&
+                      existing().userId == request.auth.uid;
+    }
+
+    // Weekly Meal Plans (ID format: plan_<uid>_<week>)
+    match /meal_plans/{planId} {
+      allow get: if isSignedIn() && isValidId(planId) &&
+                    (resource == null
+                      ? planId.matches('^plan_' + request.auth.uid + '_[a-zA-Z0-9_\\-]+$')
+                      : existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+                      isValidId(planId) &&
+                      incoming().userId == request.auth.uid &&
+                      isValidMealPlan(incoming());
+      allow update: if isSignedIn() &&
+                      isValidId(planId) &&
+                      existing().userId == request.auth.uid &&
+                      incoming().userId == request.auth.uid &&
+                      isValidMealPlan(incoming());
+      allow delete: if isSignedIn() &&
+                      isValidId(planId) &&
+                      existing().userId == request.auth.uid;
+    }
+
+    // Grocery Lists (ID format: list_<uid>_<week>)
+    match /grocery_lists/{listId} {
+      allow get: if isSignedIn() && isValidId(listId) &&
+                    (resource == null
+                      ? listId.matches('^list_' + request.auth.uid + '_[a-zA-Z0-9_\\-]+$')
+                      : existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+                      isValidId(listId) &&
+                      incoming().userId == request.auth.uid &&
+                      isValidGroceryList(incoming());
+      allow update: if isSignedIn() &&
+                      isValidId(listId) &&
+                      existing().userId == request.auth.uid &&
+                      incoming().userId == request.auth.uid &&
+                      isValidGroceryList(incoming());
+      allow delete: if isSignedIn() &&
+                      isValidId(listId) &&
+                      existing().userId == request.auth.uid;
+    }
+  }
+}

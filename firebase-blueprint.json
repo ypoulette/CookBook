@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "Recipe": {
+      "title": "Recipe",
+      "description": "User recipe with customizable ingredients, instructions, categories and comments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "prepTimeMinutes": { "type": "number" },
+        "cookTimeMinutes": { "type": "number" },
+        "servings": { "type": "number" },
+        "categories": { "type": "array" },
+        "ingredients": { "type": "array" },
+        "instructions": { "type": "array" },
+        "comments": { "type": "string", "maxLength": 2000 },
+        "rating": { "type": "number" },
+        "favorite": { "type": "boolean" },
+        "sourceUrl": { "type": "string", "maxLength": 500 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "title", "ingredients", "instructions"]
+    },
+    "MealPlan": {
+      "title": "MealPlan",
+      "description": "Weekly meal plan organized by day and meal slot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string" },
+        "weekStartDate": { "type": "string", "maxLength": 30 },
+        "slots": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "weekStartDate", "slots"]
+    },
+    "GroceryList": {
+      "title": "GroceryList",
+      "description": "Aggregated grocery shopping list generated from meal plan, custom items, and excluded pantry staples",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string" },
+        "weekStartDate": { "type": "string", "maxLength": 30 },
+        "items": { "type": "array" },
+        "pantryStaples": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "items"]
+    }
+  },
+  "firestore": {
+    "/recipes/{recipeId}": {
+      "schema": "Recipe",
+      "description": "User custom and imported recipes"
+    },
+    "/meal_plans/{planId}": {
+      "schema": "MealPlan",
+      "description": "Weekly meal plans per user"
+    },
+    "/grocery_lists/{listId}": {
+      "schema": "GroceryList",
+      "description": "Grocery shopping lists synchronized across user devices"
+    }
+  }
+}
